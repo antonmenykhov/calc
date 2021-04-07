@@ -1,5 +1,12 @@
 <template>
 <div id="app">
+    <div class="first-select">
+        <el-radio-group @change="chBk" v-model="bk">
+          <el-radio-button v-for="ch, i in rawData" :key="i"   :label="i" >{{ch.name}}</el-radio-button>
+        </el-radio-group>
+       
+    </div>
+    <div class="container">
     <div class="razdel" v-for="razdel, u in data" :key="razdel.name">
         
         <div class="selects" v-for="select, i in razdel.arr" :key="i">
@@ -13,8 +20,9 @@
                 <el-option label="100мм" value="2"></el-option>
             </el-select>
             <el-input-number :min="0" @change="getPrice" :label="select.name" v-if="select.type==='Количество'" v-model="data[u].arr[i].arr[0].number" :placeholder="select.name"></el-input-number>
-            <el-checkbox border v-if="select.type==='Опции'" @change="chOpt(u,i)" v-model="selection[u+1+''+i]" :label="select.name"></el-checkbox>
+            <el-checkbox border v-if="select.type==='Опции'" @change="chOpt(u,i)" v-model="checktion[u+1+''+i]" :label="select.name"></el-checkbox>
         </div>
+    </div>
     </div>
    
     <div class="bottom-panel">
@@ -33,14 +41,26 @@ export default {
     name: 'app',
     data() {
         return {
+            bk: null,
             price: 0,
             data: [],
+            rawData: [],
             selection: {},
+            checktion: {},
             table: ``,
             popup: false
         }
     },
     methods: {
+        chBk(){
+            for (var obj in this.checktion){
+                this.checktion[obj] = 0;
+            }
+            this.selection = {};
+            this.data = JSON.parse(JSON.stringify(this.rawData[this.bk].arr))     ; 
+            this.price = 0;
+            this.table=``;
+        },
         chOpt(u, j) {
             for (let i = 0; i < this.data[u].arr[j].arr.length; i++) {
                 if (this.data[u].arr[j].arr[i].on == 0) {
@@ -108,12 +128,18 @@ export default {
     },
 
     mounted() {
-        axios.get('http://test.menukhov.ru/newcalc/').then(response => { this.data = (response.data) })
+        axios.get('http://test.menukhov.ru/newcalc/').then(response => { this.rawData = (response.data) })
     },
 }
 </script>
 
 <style>
+.container{
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+}
 table{
   width: 100%;
 }
@@ -155,10 +181,9 @@ tr:nth-child(odd){
     flex-direction: column;
     align-items: center;
 
-    flex-grow: 1;
-
     
 }
+
 .selects{
   margin: 0 20px;
 }
@@ -184,8 +209,13 @@ tr:nth-child(odd){
     position: relative;
     display: flex;
     justify-content: center;
+    flex-direction: column;
     flex-wrap: wrap;
-    max-width: 1200px;
+    
     margin: 0 auto 100px auto;
+
+}
+body{
+    margin: 0!important
 }
 </style>
