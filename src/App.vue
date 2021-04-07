@@ -1,24 +1,29 @@
 <template>
 <div id="app">
     <div class="razdel" v-for="razdel, u in data" :key="razdel.name">
-        <p class="razdel-name">{{razdel.name}}</p>
-        <div class="selects" v-for="select, i in razdel.arr" :key="select.name">
-            <p v-if="select.type==='Варианты' || select.type==='Количество'" class="select-name">{{select.name}}</p>
-            <p class="razdel-name"></p>
-            <el-select  @change="changOn(u,i,selection[u+1+''+i])" v-if="select.type==='Варианты' && select.name !='Толщина утеплителя'" v-model="selection[u+1+''+i]" :placeholder="select.name">
+        
+        <div class="selects" v-for="select, i in razdel.arr" :key="i">
+            <p v-if="select.type==='Варианты' || select.type==='Количество' || select.type==='Опции'" class="select-name">{{select.name}}</p>
+            
+            <el-select @change="changOn(u,i,selection[u+1+''+i])" v-if="select.type==='Варианты' && select.name !='Толщина утеплителя'" v-model="selection[u+1+''+i]" :placeholder="select.name">
                 <el-option :label="opt.name" :value="index" v-for="opt, index in select.arr" :key="u+1+''+i+''+index"> </el-option>
             </el-select>
-            <el-select v-model="selection[u+1+''+i]"  @change="changeUtepl(u,i,selection[u+1+''+i])" v-if="select.name ==='Толщина утеплителя'">
-              <el-option label="150мм" value="0" ></el-option>
-              <el-option label="100мм" value="2" ></el-option>
+            <el-select v-model="selection[u+1+''+i]" @change="changeUtepl(u,i,selection[u+1+''+i])" v-if="select.name ==='Толщина утеплителя'">
+                <el-option label="150мм" value="0"></el-option>
+                <el-option label="100мм" value="2"></el-option>
             </el-select>
-            <el-input-number :min="0" @change="getPrice" :label="select.name" v-if="select.type==='Количество'" v-model="data[u].arr[i].arr[0].on" :placeholder="select.name"></el-input-number>
-
+            <el-input-number :min="0" @change="getPrice" :label="select.name" v-if="select.type==='Количество'" v-model="data[u].arr[i].arr[0].number" :placeholder="select.name"></el-input-number>
+            <el-checkbox border v-if="select.type==='Опции'" @change="chOpt(u,i)" v-model="selection[u+1+''+i]" :label="select.name"></el-checkbox>
         </div>
     </div>
+   
     <div class="bottom-panel">
-        Общая стоимость: <span>{{price}}</span>
+       <p>Общая стоимость: <span>{{price}}</span></p> 
+        <el-button id="materials" @click="popup=true">Материалы</el-button>
     </div>
+    <el-dialog width="80%" :visible.sync="popup" title="Перечень материалов">
+       <div v-html="table"></div>
+    </el-dialog>
 </div>
 </template>
 
@@ -30,10 +35,22 @@ export default {
         return {
             price: 0,
             data: [],
-            selection: {}
+            selection: {},
+            table: ``,
+            popup: false
         }
     },
     methods: {
+        chOpt(u, j) {
+            for (let i = 0; i < this.data[u].arr[j].arr.length; i++) {
+                if (this.data[u].arr[j].arr[i].on == 0) {
+                    this.data[u].arr[j].arr[i].on = 1;
+                } else{
+                  this.data[u].arr[j].arr[i].on = 0;
+                }
+                this.getPrice();
+            }
+        },
         changOn(u, j, selection) {
             for (let i = 0; i < this.data[u].arr[j].arr.length; i++) {
                 this.data[u].arr[j].arr[i].on = 0;
@@ -45,21 +62,43 @@ export default {
             for (let i = 0; i < this.data[u].arr[j].arr.length; i++) {
                 this.data[u].arr[j].arr[i].on = 0;
             }
-            console.log( this.data[u].arr[j])
             this.data[u].arr[j].arr[selection].on = 1;
-            this.data[u].arr[j].arr[selection+1].on = 1;
+            this.data[u].arr[j].arr[selection * 1 + 1].on = 1;
             this.getPrice();
         },
-        
+
         getPrice() {
-          this.price=0;
+            this.price = 0;
+             this.table = `<table>
+                  <tr>
+                    <th>Название</th>
+                    <th>Размер</th>
+                    <th>Ед.изм.</th>
+                    <th>Количество</th>
+                    <th>Цена за шт.</th>
+                    <th>Сумма</th>
+                  </tr>`
             for (let u = 0; u < this.data.length; u++) {
                 if (this.data[u].arr != null) {
+                   this.table += `<tr>
+                                  <td class="table-razdel" colspan=6>${this.data[u].name}</td>
+                                  </tr>`
                     for (let j = 0; j < this.data[u].arr.length; j++) {
                         if (this.data[u].arr[j].arr != null) {
                             for (let z = 0; z < this.data[u].arr[j].arr.length; z++) {
                                 let item = this.data[u].arr[j].arr[z];
-                                this.price += item.on * item.price * item.number;
+                                let summa = item.on * item.price * item.number
+                                this.price += summa;
+                                if (item.on >= 1 && item.number>0) {
+                                    this.table += `<tr>
+                                  <td>${item.name}</td>
+                                  <td>${item.razmer}</td>
+                                  <td>${item.ed}</td>
+                                  <td>${item.number}</td>
+                                  <td>${item.price}</td>
+                                  <td>${summa}</td>
+                                  </tr>`
+                                }
                             }
                         }
                     }
@@ -75,6 +114,27 @@ export default {
 </script>
 
 <style>
+table{
+  width: 100%;
+}
+th{
+  background: #3e3e3e;
+  color: white;
+  padding: 4px;
+}
+
+td:nth-child(1){
+  text-align: left;
+  padding: 3px;
+}
+tr:nth-child(odd){
+  background: rgb(228, 228, 228);
+}
+.table-razdel{
+  background: rgb(167, 167, 167)!important;
+  color: white;
+  text-align: center!important;
+}
 .bottom-panel {
     position: fixed;
     bottom: 0;
@@ -85,8 +145,9 @@ export default {
     font-size: 30px;
     text-align: center;
     display: flex;
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
+    z-index: 2;
 }
 
 .razdel {
@@ -96,7 +157,10 @@ export default {
 
     flex-grow: 1;
 
-    margin: 20px;
+    
+}
+.selects{
+  margin: 0 20px;
 }
 
 .selects:empty {
@@ -107,7 +171,7 @@ export default {
     font-weight: 600;
 }
 
-.razdel-name:nth-last-child(2) {
+.razdel:empty {
     display: none;
 }
 
@@ -122,6 +186,6 @@ export default {
     justify-content: center;
     flex-wrap: wrap;
     max-width: 1200px;
-    margin: 0 auto 60px auto;
+    margin: 0 auto 100px auto;
 }
 </style>
